@@ -5,8 +5,8 @@
 #include <time.h>
 #include <assert.h>
 
-#define MAP_WIDTH  50
-#define MAP_HEIGHT 50
+#define MAP_WIDTH  20
+#define MAP_HEIGHT 20
 
 #define MASK(tile) (1<<(tile))
 #define TILE_FOUND(option, tile) (((option) >> (tile)) & 0x1)
@@ -191,6 +191,7 @@ int main(int argc, char* argv[]) {
     // Initial map settings
     for (size_t i = 0; i < MAP_WIDTH; i++) {
         map_ref[0][i] = AIR;
+        // map_ref[MAP_HEIGHT - 1][i] = DIRT;
     }
 
     memcpy(map, map_ref, sizeof(map));
@@ -201,8 +202,9 @@ int main(int argc, char* argv[]) {
         if (update_map(map, options)) {
             printf("FAILED on iteration: %d!!!!\n", i);
 
-            // memcpy(map, map_ref, sizeof(map));
-            break;
+            // Restart until it works
+            memcpy(map, map_ref, sizeof(map));
+            i = 0;
         }
         // print_map(map, TILE_CHARS);
     }
@@ -253,14 +255,27 @@ void print_options(uint32_t options[MAP_HEIGHT][MAP_WIDTH], const char tile_char
 }
 
 void print_rules(uint32_t rules[TILE_COUNT][DIRECTION_COUNT]) {
-    assert(TILE_COUNT == 4);
+    assert(TILE_COUNT == 17);
     assert(DIRECTION_COUNT == 4);
 
     for (tile_t t = EMPTY; t < TILE_COUNT; t++) {
         PRINT_IF_EQUAL("[%s] = {\n", t, EMPTY);
         PRINT_IF_EQUAL("[%s] = {\n", t, AIR);
         PRINT_IF_EQUAL("[%s] = {\n", t, DIRT);
+        PRINT_IF_EQUAL("[%s] = {\n", t, DIRT_L);
+        PRINT_IF_EQUAL("[%s] = {\n", t, DIRT_R);
         PRINT_IF_EQUAL("[%s] = {\n", t, GRASS);
+        PRINT_IF_EQUAL("[%s] = {\n", t, GRASS_L);
+        PRINT_IF_EQUAL("[%s] = {\n", t, GRASS_R);
+        PRINT_IF_EQUAL("[%s] = {\n", t, CLOUD);
+        PRINT_IF_EQUAL("[%s] = {\n", t, CLOUD_T);
+        PRINT_IF_EQUAL("[%s] = {\n", t, CLOUD_B);
+        PRINT_IF_EQUAL("[%s] = {\n", t, CLOUD_L);
+        PRINT_IF_EQUAL("[%s] = {\n", t, CLOUD_R);
+        PRINT_IF_EQUAL("[%s] = {\n", t, CLOUD_TL);
+        PRINT_IF_EQUAL("[%s] = {\n", t, CLOUD_TR);
+        PRINT_IF_EQUAL("[%s] = {\n", t, CLOUD_BL);
+        PRINT_IF_EQUAL("[%s] = {\n", t, CLOUD_BR);
         for (direction_t d = 0; d < DIRECTION_COUNT; d++) {
             PRINT_IF_EQUAL("  [%5s] = { ", d, UP);
             PRINT_IF_EQUAL("  [%5s] = { ", d, RIGHT);
@@ -271,7 +286,20 @@ void print_rules(uint32_t rules[TILE_COUNT][DIRECTION_COUNT]) {
                     PRINT_IF_EQUAL("%s ", allowed_tile, EMPTY);
                     PRINT_IF_EQUAL("%s ", allowed_tile, AIR);
                     PRINT_IF_EQUAL("%s ", allowed_tile, DIRT);
+                    PRINT_IF_EQUAL("%s ", allowed_tile, DIRT_L);
+                    PRINT_IF_EQUAL("%s ", allowed_tile, DIRT_R);
                     PRINT_IF_EQUAL("%s ", allowed_tile, GRASS);
+                    PRINT_IF_EQUAL("%s ", allowed_tile, GRASS_L);
+                    PRINT_IF_EQUAL("%s ", allowed_tile, GRASS_R);
+                    PRINT_IF_EQUAL("%s ", allowed_tile, CLOUD);
+                    PRINT_IF_EQUAL("%s ", allowed_tile, CLOUD_T);
+                    PRINT_IF_EQUAL("%s ", allowed_tile, CLOUD_B);
+                    PRINT_IF_EQUAL("%s ", allowed_tile, CLOUD_L);
+                    PRINT_IF_EQUAL("%s ", allowed_tile, CLOUD_R);
+                    PRINT_IF_EQUAL("%s ", allowed_tile, CLOUD_TL);
+                    PRINT_IF_EQUAL("%s ", allowed_tile, CLOUD_TR);
+                    PRINT_IF_EQUAL("%s ", allowed_tile, CLOUD_BL);
+                    PRINT_IF_EQUAL("%s ", allowed_tile, CLOUD_BR);
                 }
             }
             printf("}\n");
@@ -312,7 +340,12 @@ int update_map(tile_t map[MAP_HEIGHT][MAP_WIDTH], uint32_t options[MAP_HEIGHT][M
     // printf("]\n");
 
     // Return if there are no options
-    if ((num_minimums == 0) || (smallest_count == 0))
+    if ((num_minimums == 0) && (smallest_count == ((uint8_t) -1)))
+    {
+        return 0; // No more changes to make
+        // TODO: Somehow indicate that the map is full
+    }
+    else if ((num_minimums == 0) || (smallest_count == 0))
     {
         return 1;  // Indicate error
     }
